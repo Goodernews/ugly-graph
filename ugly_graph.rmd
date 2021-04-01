@@ -1,0 +1,111 @@
+---
+title: "Ugly graph contest"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(tidyverse)
+library(tidytuesdayR)
+library(tidytext)
+library(textdata)
+library(extrafont)
+library(png)
+
+```
+
+Data options
+
+```{r}
+beyonce_tay_tay <- tidytuesdayR::tt_load('2020-09-29')
+queen_b <- beyonce_tay_tay$beyonce_lyrics
+dat_me <- beyonce_tay_tay$taylor_swift_lyrics
+
+```
+
+
+```{r}
+
+
+sentiments <- get_sentiments("afinn")
+calc_sentiment <- function(string){
+  split <- unlist(strsplit(string, "[[:punct:] ]"))
+  indexed <- match(split, sentiments$word)
+  vals <- sentiments$value[indexed]
+  return(sum(vals, na.rm=TRUE))
+}
+
+
+
+
+```
+
+```{r}
+
+#taylor swift sentiments
+dat_me$sentiment <- map(dat_me$Lyrics, calc_sentiment)%>%
+  unlist()
+
+dat_me <- dat_me[, c(3,5)]
+
+#beyonce sentiments
+queen_b$sentiments <- map(queen_b$line, calc_sentiment) %>%
+  unlist()
+
+queen_b <- queen_b %>%
+  as.tibble() %>%
+  group_by(song_name) %>%
+  summarise(sentiments = sum(sentiments))
+
+
+colnames(queen_b) <- c("song", "sentiment")
+
+colnames(dat_me) <- c("song", "sentiment")
+
+
+combined <- rbind(queen_b, dat_me)
+
+
+write_csv(combined, "tay_beyonce_ugly.csv")
+
+```
+
+
+
+
+```{r}
+
+img <- readPNG(system.file("img", "Rlogo.png", package = "png"))
+
+
+font_import("Comic Sans MS")
+
+ggplot(combined, aes(song, sentiment)) + 
+  geom_col() + 
+  labs(title = "Beyonce and Tay Tay Sentiments",
+       subtitle = "No hecking order",
+       caption = "SOURCE: THAT ONE KID THAT WON'T SHUT UP ABOUT TAY SWIFFER") +
+  theme(axis.text.x=element_blank(),
+  panel.background = element_rect(fill = "#FF69B4",
+                                colour = "#FF69B4",
+                                size = 0.5, linetype = "solid"),
+  panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                colour = "white"), 
+  plot.background = element_rect(fill = "#ffe135"),
+  panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                colour = "white")
+  ) +
+  annotation_raster(img, xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf, interpolate = TRUE) +
+  geom_point(colour="#d9d9d9", alpha=0.5)
+
+
+
+```
+
+
+
